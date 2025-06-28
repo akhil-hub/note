@@ -1,0 +1,37 @@
+name: Deploy GCP VM Instance
+
+on:
+  push:
+    paths:
+      - '**/'
+
+jobs:
+  deploy-vm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Create GCP VM Instance
+        run: |
+          gcloud compute instances create ${{ github.workflow }}-instance \
+            --zone=us-central1-a \
+            --machine-type=e2-micro \
+            --image-family=debian-11 \
+            --image-project=debian-cloud \
+            --tags=github-action \
+            --metadata=startup-script='#! /bin/bash
+              cd $PWD/${{ github.workspace }}
+              # Custom startup commands here
+            '
+
+      - name: Output VM Info
+        run: |
+          gcloud compute instances describe ${{ github.workflow }}-instance --zone=us-central1-a
